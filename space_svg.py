@@ -1,18 +1,29 @@
+"""
+WARNING:
+    This code is kind of a hot mess and barely works as is. It is also designed to specifically work with the numbers
+    I choose at the moment.
+    Don't expect this to work first try
+"""
+
 import requests
 import re
 import math
 import svgwrite
 import numpy
 
+
+# Constant
 AU = 1.495978707E11
 
+# Parameters. The year and day are used to determine the positions of the planets
 YEAR = "2020"
 DAY = "049"
-MULT_FACTOR = 24  # This is used to scale the entire thing. Should be changed to match the material
-SIZE = 1000
+MULT_FACTOR = 24  # This is used to scale the entire thing. Kind of arbitrary tbh
+SIZE = 1000  # Used to calculate the center. Also arbitrary
 CENTER = (SIZE/2, SIZE/2)
 
 
+# Don't touch this stuff. This is used to request the planet data from NASA
 request_data = {"activity": "ftp",
                 "object": "01",
                 "coordinate": "1",
@@ -24,9 +35,11 @@ request_data = {"activity": "ftp",
                 "equinox": "2",
                 "object2": ""}
 
-objects_search = ["29", "15", "04", "42", "30", "31", "44", "45", "38"]
+objects_search = ["29", "15", "04", "42", "30", "31", "44", "45", "38"]  # The 9 planets
 
 '''
+# This is just some helper code to help make the numbers in the correct units
+
 # Perihelions and Aphelions are in 1E6 KM and inclinations are in degrees
 perihelions = [46, 107.5, 147.1, 206.6, 740.5, 1352.6, 2741.3, 4444.5, 4436.8]
 aphelions = [69.8, 108.9, 152.1, 249.2, 816.6, 1514.5, 3003.6, 4545.7, 7375.9]
@@ -42,23 +55,26 @@ print(*aphelions, sep=", ")
 '''
 
 
+# Constant values of the planetary orbits
+
 # Perihelions and Apehelions in AU
 perihelions = [0.3074910076243485, 0.7185931156438579, 0.9833027656856883, 1.3810356994606607, 4.9499367640397836,
                9.0415725415803, 18.32445867827449, 29.709647464922107, 29.658176144080638]
 aphelions = [0.4665841811343375, 0.7279515376150337, 1.0167257012970305, 1.6657991108692967, 5.458633844044413,
              10.12380719667556, 20.077825880445502, 30.386127681695672, 30.0]
 inclinations = [7, 3.4, 0, 5.1, 1.9, 1.3, 2.5, 0.8, 17.2]
+# Perihelion longitudes
 peri_longs = [77.45645, 131.53298, 102.94719, 336.04084, 14.75385, 92.43194, 170.96424, 44.97135, 224.06676]
+# Scale each orbit individually. Used to make things look a bit nicer because otherwise the planets end up way too
+# close or far from each other
 scales = [1.25, 2, 2.7, 2.45, 1.1, .7, .4, .3, .36]
 
 # DISTANCE, LAT, LONG
 objects_data = []
 
-# perihelions = list(map(lambda peri, theta: peri*math.cos(theta), perihelions, inclinations))
-# aphelions = list(map(lambda aphe, theta: aphe*math.cos(theta), aphelions, inclinations))
-
 print("Started...")
 
+# Request data from NASA and store it
 for x in objects_search:
     request_data["object"] = x
     r = requests.post("https://omniweb.gsfc.nasa.gov/cgi/models/helios1.cgi", data=request_data)
@@ -111,11 +127,13 @@ for p in objects_data:
 print(converted_data)
 
 # Now, get the closest points on the ellipses to each planet from the NASA data
-# https://www.desmos.com/calculator/gw99rlkvlm
-# ~~The hard part is scaling it right so the planets are actually roughly near their respective orbits,
-# otherwise funky things happen~~. Looks like this is actually fine
+# I think this is actually slightly wrong, as it doesn't take into account the rotation of orbits.
+# This is hard to do and I don't want to bother atm
+# https://www.desmos.com/calculator/ymhqhvlpbp
 
-iters = numpy.linspace(0, numpy.pi, 800)  # Change 314 to something higher to increase accuracy
+num_iters = 800  # Increase to increase accuracy
+
+iters = numpy.linspace(0, numpy.pi, num_iters)
 
 aligned_planets = []
 
@@ -152,10 +170,13 @@ for pi in range(0, len(converted_data)):
     aligned_planets.append((x + CENTER[0], y + CENTER[1]))
 
 
-dwg = svgwrite.Drawing('test.svg', profile="full")
+# Start creating the SVG. This is where a lot of the values were just based on what worked for me, like the r values
+dwg = svgwrite.Drawing('output.svg', profile="full")
 
+# This is the sun
 dwg.add(dwg.circle(center=CENTER, r=4.498, stroke=svgwrite.rgb(255, 0, 0, 'RGB'), fill_opacity="1", stroke_width=1))
 
+# Create all the orbits and planets
 for i in range(0, len(aphelions)):
     dwg.add(dwg.ellipse(center=CENTER, r=(aphelions[i]*MULT_FACTOR*scales[i],
                                           perihelions[i]*MULT_FACTOR*scales[i]),
@@ -165,7 +186,9 @@ for i in range(0, len(aphelions)):
                        transform="rotate("+str(peri_longs[i])+"," + str(CENTER[0]) + "," + str(CENTER[1]) + ")",
                        fill_opacity="1", stroke_width=1))
 
+# This is an outside circle. Useless for most things, needed for my application
 dwg.add(dwg.circle(center=CENTER, r=(aphelions[-1]*MULT_FACTOR*scales[-1]*1.2), fill_opacity="0",
                    stroke=svgwrite.rgb(255, 0, 0, 'RGB'), stroke_width=1))
 
+# Save the SVG
 dwg.save()
