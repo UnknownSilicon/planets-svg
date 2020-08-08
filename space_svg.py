@@ -19,7 +19,7 @@ AU = 1.495978707E11
 YEAR = "2020"
 DAY = "049"
 MULT_FACTOR = 24  # This is used to scale the entire thing. Kind of arbitrary tbh
-SIZE = 1000  # Used to calculate the center. Also arbitrary
+SIZE = 508  # Used to calculate the center. Sets the viewport as well
 CENTER = (SIZE/2, SIZE/2)
 
 
@@ -67,7 +67,7 @@ inclinations = [7, 3.4, 0, 5.1, 1.9, 1.3, 2.5, 0.8, 17.2]
 peri_longs = [77.45645, 131.53298, 102.94719, 336.04084, 14.75385, 92.43194, 170.96424, 44.97135, 224.06676]
 # Scale each orbit individually. Used to make things look a bit nicer because otherwise the planets end up way too
 # close or far from each other
-scales = [1.25, 2, 2.7, 2.45, 1.1, .7, .4, .3, .36]
+scales = [1.25, 2, 2.7, 2.45, 0.95, .65, .375, .28, .32]
 
 # DISTANCE, LAT, LONG
 objects_data = []
@@ -172,9 +172,11 @@ for pi in range(0, len(converted_data)):
 
 # Start creating the SVG. This is where a lot of the values were just based on what worked for me, like the r values
 dwg = svgwrite.Drawing('output.svg', profile="full")
+dwg.viewbox(0, 0, SIZE, SIZE)
 
 # This is the sun
-dwg.add(dwg.circle(center=CENTER, r=4.498, stroke=svgwrite.rgb(255, 0, 0, 'RGB'), fill_opacity="1", stroke_width=1))
+dwg.add(dwg.circle(center=CENTER, r=4.498, stroke=svgwrite.rgb(255, 0, 0, 'RGB'),
+                   fill=svgwrite.rgb(255, 0, 0, 'RGB'), fill_opacity="1", stroke_width=1))
 
 # Create all the orbits and planets
 for i in range(0, len(aphelions)):
@@ -183,12 +185,13 @@ for i in range(0, len(aphelions)):
                         transform="rotate("+str(peri_longs[i])+"," + str(CENTER[0]) + "," + str(CENTER[1]) + ")",
                         fill_opacity="0", stroke=svgwrite.rgb(0, 0, 0, 'RGB'), stroke_width=2))
     dwg.add(dwg.circle(center=aligned_planets[i], r=2.75, stroke=svgwrite.rgb(255, 0, 0, 'RGB'),
+                       fill=svgwrite.rgb(255, 0, 0, 'RGB'),
                        transform="rotate("+str(peri_longs[i])+"," + str(CENTER[0]) + "," + str(CENTER[1]) + ")",
                        fill_opacity="1", stroke_width=1))
 
 # This is an outside circle. Useless for most things, needed for my application
-dwg.add(dwg.circle(center=CENTER, r=(aphelions[-1]*MULT_FACTOR*scales[-1]*1.2), fill_opacity="0",
-                   stroke=svgwrite.rgb(255, 0, 0, 'RGB'), stroke_width=1))
+dwg.add(dwg.circle(center=CENTER, r=(aphelions[-1]*MULT_FACTOR*scales[-1]*1.1), fill_opacity="0",
+                   stroke=svgwrite.rgb(255, 0, 0, 'RGB'), fill=svgwrite.rgb(255, 0, 0, 'RGB'), stroke_width=1))
 
 # Save the SVG
 dwg.save()
